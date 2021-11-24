@@ -1,0 +1,32 @@
+--- 
+title: "Bubbles: debugging 2D UMAPs"
+author: "SK"
+date: "`r Sys.Date()`"
+site: bookdown::bookdown_site
+documentclass: book
+bibliography: [book.bib, packages.bib]
+url: https://github.com/snaketron/Bubbles/issues
+description: |
+  In this tutorial we will use Uniform Manifold Approximation and Projection 
+  (UMAP) algorithm for dimension reduction of single cell expression data. We 
+  will ask and answer the following questions: 
+  i) why do people use UMAP?
+  ii) does UMAP work as advertised for datasets with varying complexity
+  iii) do we get similar UMAPs with different pre-processing steps (e.g. 
+  data normalization)
+  iv) do we need an alternative/enhancement of UMAP?
+link-citations: yes
+github-repo: https://github.com/snaketron/Bubbles/issues
+---
+
+# About
+
+In this tutorial we will use Uniform Manifold Approximation and Projection 
+(UMAP) algorithm for dimension reduction of single cell expression data. We 
+will ask and answer the following questions: 
+  
+  1. why do people use UMAP?
+  2. does UMAP work as advertised for datasets with varying complexity
+  3. do we get similar UMAPs with different pre-processing steps (e.g. 
+  data normalization)
+  4. can we think of an alternative/enhancement of UMAP?

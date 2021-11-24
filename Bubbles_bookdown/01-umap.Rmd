@@ -1,0 +1,292 @@
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = F,
+                      comment = F, 
+                      warning = F, 
+                      message = F)
+```
+
+
+```{r}
+require(umap)
+require(ggplot2)
+require(gridExtra)
+```
+
+
+# UMAP
+
+UMAP is an algorithm for non-linear dimension reduction. UMAP learns the 
+manifold structure of the input data, and finds a **low dimensional embedding** 
+that preserves the topological structure of that manifold.
+
+Here we will simulate data and generate 2D UMAP
+
+
+## Data simulation
+
+  * $N$=100 cells
+  * $F$=2 features (F1 and F2)
+  * Gene expression matrix $Y^{N \times F}$
+      
+      * $Y^{[1:50, F1]} \sim N(0, 1)$
+      * $Y^{[51:100, F1]} \sim N(5, 2)$
+      * $Y^{[1:100, F2]} \sim N(0, 1)$
+
+
+### F1 and F2 distribution
+
+
+```{r sim100}
+# simulate 100 expression in cells with 2 features
+# feature 1: first 50 cell expressions ~ N(0, 1)
+# feature 1: second 50 cell expressions ~ N(5, 2)
+# feature 2: all 100 cell expressions ~ N(0, 1)
+set.seed(seed = 7612)
+y <- cbind(c(rnorm(n = 50, mean = 0, sd = 1), 
+             rnorm(n = 50, mean = 5, sd = 2)),
+           rnorm(n = 100, mean = 0, sd = 1))
+rownames(y) <- paste0("C-", 1:nrow(y))
+colnames(y) <- paste0("F-", 1:ncol(y))
+```
+
+
+
+```{r fig_data, fig.width=8, fig.height=4}
+gridExtra::grid.arrange(
+  nrow=1,
+  ggplot(data = data.frame(y))+
+  geom_point(aes(x = 1:nrow(y), y = y[, 1]))+
+  theme_bw()+
+  ylab(label = "F1")+
+  xlab(label = "Cells 1 to 100"),
+  ggplot(data = data.frame(y))+
+  geom_point(aes(x = 1:nrow(y), y = y[, 2]))+
+  theme_bw()+
+  ylab(label = "F2")+
+  xlab(label = "Cells 1 to 100"))
+```
+
+
+
+
+```{r umap-orig}
+# build umap
+u <- umap(d = y)
+
+# data.frame of UMAP coordinates
+m <- data.frame(u$layout)
+m <- cbind(m, data.frame(u$data))
+m$G <- rep(x = c("1-50", "51-100"), each = 50)
+```
+
+```{r fig1, fig.width=9, fig.height=4}
+gridExtra::grid.arrange(
+  nrow=1,
+  ggplot(data = m)+
+    geom_point(aes(x = X1, y = X2, col = G))+
+    xlab(label = "UMAP_1")+
+    ylab(label = "UMAP_2")+
+    theme_bw()+
+    theme(legend.position = "top"),
+  ggplot(data = m)+
+    geom_point(aes(x = X1, y = X2, col = F.1))+
+    xlab(label = "UMAP_1")+
+    ylab(label = "UMAP_2")+
+    theme_bw()+
+    theme(legend.position = "top")+
+    scale_color_distiller(palette = "Spectral"),
+  ggplot(data = m)+
+    geom_point(aes(x = X1, y = X2, col = F.2))+
+    xlab(label = "UMAP_1")+
+    ylab(label = "UMAP_2")+
+    theme_bw()+
+    theme(legend.position = "top")+
+    scale_color_distiller(palette = "Spectral"))
+```
+
+
+## UMAP parameters
+
+UMAP has a lot of parameters. See full list below.
+
+```{r}
+u.conf <- umap::umap.defaults
+print(unlist(u.conf))
+```
+
+### *n_neighbors*  (default n_neighbors: 15)
+*n_neighbors* controls the resolution at which UMAP learns the manifold 
+structure of the data.
+
+If *n_neighbors* is set to a too low value, UMAP will zoom into local 
+neighborhood when attempting to learn the manifold structure of the data. 
+The opposite will happen if *n_neighbors* is set to a too high value.
+
+
+Lets set *n_neighbors*=3 and look at the resulting UMAP. As expected, we see 
+that UMAP focuses on learning from local structure and misses the global 
+structure. As a result we get stringy UMAP layout.
+
+```{r orig_umap, fig.width=8, fig.height=4}
+# change config of umap
+u.conf <- umap::umap.defaults
+u.conf$n_neighbors <- 3
+
+u.temp <- umap(d = y, config = u.conf)
+
+# data.frame of UMAP coordinates
+m <- data.frame(u.temp$layout)
+m <- cbind(m, data.frame(u$data))
+m$G <- rep(x = c("1-50", "51-100"), each = 50)
+
+
+gridExtra::grid.arrange(
+  nrow=1,
+  ggplot(data = m)+
+    geom_point(aes(x = X1, y = X2, col = G))+
+    xlab(label = "UMAP_1")+
+    ylab(label = "UMAP_2")+
+    theme_bw()+
+    theme(legend.position = "top"),
+  ggplot(data = m)+
+    geom_point(aes(x = X1, y = X2, col = F.1))+
+    xlab(label = "UMAP_1")+
+    ylab(label = "UMAP_2")+
+    theme_bw()+
+    theme(legend.position = "top")+
+    scale_color_distiller(palette = "Spectral"),
+  ggplot(data = m)+
+    geom_point(aes(x = X1, y = X2, col = F.2))+
+    xlab(label = "UMAP_1")+
+    ylab(label = "UMAP_2")+
+    theme_bw()+
+    theme(legend.position = "top")+
+    scale_color_distiller(palette = "Spectral"))
+```
+
+The opposite should happen for e.g. *n_neighbors*=100, the overal (global) 
+structure should be captured better but at the loss of some of the finer local structure compared to the initial example where we set *n_neighbors*=15. As 
+there are only 100 cells in our data, *n_neighbors*=15 was already high enough 
+and we do not see that much of difference in the newly built UMAP.
+
+```{r n_neighbors, fig.width=8, fig.height=4}
+# change config of umap
+u.conf <- umap::umap.defaults
+u.conf$n_neighbors <- 100
+
+u.temp <- umap(d = y, config = u.conf)
+
+# data.frame of UMAP coordinates
+m <- data.frame(u.temp$layout)
+m <- cbind(m, data.frame(u.temp$data))
+m$G <- rep(x = c("1-50", "51-100"), each = 50)
+
+gridExtra::grid.arrange(
+  nrow=1,
+  ggplot(data = m)+
+    geom_point(aes(x = X1, y = X2, col = G))+
+    xlab(label = "UMAP_1")+
+    ylab(label = "UMAP_2")+
+    theme_bw()+
+    theme(legend.position = "top"),
+  ggplot(data = m)+
+    geom_point(aes(x = X1, y = X2, col = F.1))+
+    xlab(label = "UMAP_1")+
+    ylab(label = "UMAP_2")+
+    theme_bw()+
+    theme(legend.position = "top")+
+    scale_color_distiller(palette = "Spectral"),
+  ggplot(data = m)+
+    geom_point(aes(x = X1, y = X2, col = F.2))+
+    xlab(label = "UMAP_1")+
+    ylab(label = "UMAP_2")+
+    theme_bw()+
+    theme(legend.position = "top")+
+    scale_color_distiller(palette = "Spectral"))
+```
+
+### *min_dist* (default min_dist: 0.1)
+*min_dist* determines the compactness/clumpiness of the data points as it 
+provides the minimum possible distance that may exist between any two points.
+
+Below two panels show UMAPs with *min_dist*=$10^{-5}$ (left panel) and 
+*min_dist*=0.99 (right panel)
+
+```{r min_dist, fig.width=8, fig.height=4}
+set.seed(seed = 7612)
+
+# change config of umap
+u.conf <- umap::umap.defaults
+u.conf$min_dist <- 10^(-5)
+u.temp <- umap(d = y, config = u.conf)
+# data.frame of UMAP coordinates
+m1 <- data.frame(u.temp$layout)
+m1 <- cbind(m1, data.frame(u.temp$data))
+m1$G <- rep(x = c("1-50", "51-100"), each = 50)
+
+
+
+# change config of umap
+u.conf <- umap::umap.defaults
+u.conf$min_dist <- 0.99
+u.temp <- umap(d = y, config = u.conf)
+# data.frame of UMAP coordinates
+m2 <- data.frame(u.temp$layout)
+m2 <- cbind(m2, data.frame(u.temp$data))
+m2$G <- rep(x = c("1-50", "51-100"), each = 50)
+
+
+gridExtra::grid.arrange(
+  nrow=1,
+  ggplot(data = m1)+
+    geom_point(aes(x = X1, y = X2, col = G))+
+    xlab(label = "UMAP_1")+
+    ylab(label = "UMAP_2")+
+    theme_bw()+
+    theme(legend.position = "top")+
+    ggtitle(label = "min_dist=10^(-5)"),
+  ggplot(data = m2)+
+    geom_point(aes(x = X1, y = X2, col = G))+
+    xlab(label = "UMAP_1")+
+    ylab(label = "UMAP_2")+
+    theme_bw()+
+    theme(legend.position = "top")+
+    ggtitle(label = "min_dist=0.99"))
+```
+
+### *n_components* (default n_components: 2)
+As in other dimension reduction algorithms, UMAP can perform dimension 
+reduction to a specific number of dimensions. This is regulated by the 
+parameter *n_components*.
+
+
+```{r n_components, fig.width=4, fig.height=4}
+set.seed(seed = 7612)
+
+# change config of umap
+u.conf <- umap::umap.defaults
+u.conf$n_components <- 1
+u.temp <- umap(d = y, config = u.conf)
+# data.frame of UMAP coordinates
+m <- data.frame(u.temp$layout)
+m <- cbind(m, data.frame(u.temp$data))
+m$G <- rep(x = c("1-50", "51-100"), each = 50)
+m$i <- 1:nrow(m)
+
+ggplot(data = m)+
+    geom_point(aes(x = i, y = u.temp.layout, col = G))+
+    xlab(label = "cells 1 to 100")+
+    ylab(label = "UMAP_1")+
+    theme_bw()+
+    theme(legend.position = "top")+
+    ggtitle(label = "n_components=1")
+```
+
+
+### *metric* (default metric='Euclidean')
+
+This parameters determines how distances are computed between the cells. Many
+different metrics are available
+
+
+

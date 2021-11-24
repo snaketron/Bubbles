@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Chapter 2 UMAP | Bubbles: debugging 2D UMAPs</title>
+  <meta name="description" content="<p>In this tutorial we will use Uniform Manifold Approximation and Projection
+(UMAP) algorithm for dimension reduction of single cell expression data. We
+will ask and answer the following questions:
+i) why do people use UMAP?
+ii) does UMAP work as advertised for datasets with varying complexity
+iii) do we get similar UMAPs with different pre-processing steps (e.g. 
+data normalization)
+iv) do we need an alternative/enhancement of UMAP?</p>" />
+  <meta name="generator" content="bookdown 0.24 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="Chapter 2 UMAP | Bubbles: debugging 2D UMAPs" />
+  <meta property="og:type" content="book" />
+  <meta property="og:url" content="https://github.com/snaketron/Bubbles/issues" />
+  
+  <meta property="og:description" content="<p>In this tutorial we will use Uniform Manifold Approximation and Projection
+(UMAP) algorithm for dimension reduction of single cell expression data. We
+will ask and answer the following questions:
+i) why do people use UMAP?
+ii) does UMAP work as advertised for datasets with varying complexity
+iii) do we get similar UMAPs with different pre-processing steps (e.g. 
+data normalization)
+iv) do we need an alternative/enhancement of UMAP?</p>" />
+  <meta name="github-repo" content="https://github.com/snaketron/Bubbles/issues" />
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Chapter 2 UMAP | Bubbles: debugging 2D UMAPs" />
+  
+  <meta name="twitter:description" content="<p>In this tutorial we will use Uniform Manifold Approximation and Projection
+(UMAP) algorithm for dimension reduction of single cell expression data. We
+will ask and answer the following questions:
+i) why do people use UMAP?
+ii) does UMAP work as advertised for datasets with varying complexity
+iii) do we get similar UMAPs with different pre-processing steps (e.g. 
+data normalization)
+iv) do we need an alternative/enhancement of UMAP?</p>" />
+  
+
+<meta name="author" content="SK" />
+
+
+<meta name="date" content="2021-11-23" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+<link rel="prev" href="index.html"/>
+<link rel="next" href="cross.html"/>
+<script src="libs/header-attrs-2.11/header-attrs.js"></script>
+<script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-clipboard.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+<link href="libs/anchor-sections-1.0.1/anchor-sections.css" rel="stylesheet" />
+<script src="libs/anchor-sections-1.0.1/anchor-sections.js"></script>
+
+
+
+<style type="text/css">
+/* Used with Pandoc 2.11+ new --citeproc when CSL is used */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
+</style>
+
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li><a href="./">Debugging 2D UMAPs</a></li>
+
+<li class="divider"></li>
+<li class="chapter" data-level="1" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i><b>1</b> About</a></li>
+<li class="chapter" data-level="2" data-path="umap.html"><a href="umap.html"><i class="fa fa-check"></i><b>2</b> UMAP</a>
+<ul>
+<li class="chapter" data-level="2.1" data-path="umap.html"><a href="umap.html#data-simulation"><i class="fa fa-check"></i><b>2.1</b> Data simulation</a>
+<ul>
+<li class="chapter" data-level="2.1.1" data-path="umap.html"><a href="umap.html#f1-and-f2-distribution"><i class="fa fa-check"></i><b>2.1.1</b> F1 and F2 distribution</a></li>
+</ul></li>
+<li class="chapter" data-level="2.2" data-path="umap.html"><a href="umap.html#umap-parameters"><i class="fa fa-check"></i><b>2.2</b> UMAP parameters</a>
+<ul>
+<li class="chapter" data-level="2.2.1" data-path="umap.html"><a href="umap.html#n_neighbors-default-n_neighbors-15"><i class="fa fa-check"></i><b>2.2.1</b> <em>n_neighbors</em> (default n_neighbors: 15)</a></li>
+<li class="chapter" data-level="2.2.2" data-path="umap.html"><a href="umap.html#min_dist-default-min_dist-0.1"><i class="fa fa-check"></i><b>2.2.2</b> <em>min_dist</em> (default min_dist: 0.1)</a></li>
+<li class="chapter" data-level="2.2.3" data-path="umap.html"><a href="umap.html#n_components-default-n_components-2"><i class="fa fa-check"></i><b>2.2.3</b> <em>n_components</em> (default n_components: 2)</a></li>
+<li class="chapter" data-level="2.2.4" data-path="umap.html"><a href="umap.html#metric-default-metriceuclidean"><i class="fa fa-check"></i><b>2.2.4</b> <em>metric</em> (default metric=‘Euclidean’)</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="3" data-path="cross.html"><a href="cross.html"><i class="fa fa-check"></i><b>3</b> Cross-references</a>
+<ul>
+<li class="chapter" data-level="3.1" data-path="cross.html"><a href="cross.html#chapters-and-sub-chapters"><i class="fa fa-check"></i><b>3.1</b> Chapters and sub-chapters</a></li>
+<li class="chapter" data-level="3.2" data-path="cross.html"><a href="cross.html#captioned-figures-and-tables"><i class="fa fa-check"></i><b>3.2</b> Captioned figures and tables</a></li>
+</ul></li>
+<li class="chapter" data-level="4" data-path="parts.html"><a href="parts.html"><i class="fa fa-check"></i><b>4</b> Parts</a></li>
+<li class="chapter" data-level="5" data-path="footnotes-and-citations.html"><a href="footnotes-and-citations.html"><i class="fa fa-check"></i><b>5</b> Footnotes and citations</a>
+<ul>
+<li class="chapter" data-level="5.1" data-path="footnotes-and-citations.html"><a href="footnotes-and-citations.html#footnotes"><i class="fa fa-check"></i><b>5.1</b> Footnotes</a></li>
+<li class="chapter" data-level="5.2" data-path="footnotes-and-citations.html"><a href="footnotes-and-citations.html#citations"><i class="fa fa-check"></i><b>5.2</b> Citations</a></li>
+</ul></li>
+<li class="chapter" data-level="6" data-path="blocks.html"><a href="blocks.html"><i class="fa fa-check"></i><b>6</b> Blocks</a>
+<ul>
+<li class="chapter" data-level="6.1" data-path="blocks.html"><a href="blocks.html#equations"><i class="fa fa-check"></i><b>6.1</b> Equations</a></li>
+<li class="chapter" data-level="6.2" data-path="blocks.html"><a href="blocks.html#theorems-and-proofs"><i class="fa fa-check"></i><b>6.2</b> Theorems and proofs</a></li>
+<li class="chapter" data-level="6.3" data-path="blocks.html"><a href="blocks.html#callout-blocks"><i class="fa fa-check"></i><b>6.3</b> Callout blocks</a></li>
+</ul></li>
+<li class="chapter" data-level="7" data-path="sharing-your-book.html"><a href="sharing-your-book.html"><i class="fa fa-check"></i><b>7</b> Sharing your book</a>
+<ul>
+<li class="chapter" data-level="7.1" data-path="sharing-your-book.html"><a href="sharing-your-book.html#publishing"><i class="fa fa-check"></i><b>7.1</b> Publishing</a></li>
+<li class="chapter" data-level="7.2" data-path="sharing-your-book.html"><a href="sharing-your-book.html#pages"><i class="fa fa-check"></i><b>7.2</b> 404 pages</a></li>
+<li class="chapter" data-level="7.3" data-path="sharing-your-book.html"><a href="sharing-your-book.html#metadata-for-sharing"><i class="fa fa-check"></i><b>7.3</b> Metadata for sharing</a></li>
+</ul></li>
+<li class="chapter" data-level="" data-path="references.html"><a href="references.html"><i class="fa fa-check"></i>References</a></li>
+<li class="divider"></li>
+<li><a href="https://github.com/snaketron/Bubbles/issues" target="blank">Debugging 2D UMAPs</a></li>
+
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Bubbles: debugging 2D UMAPs</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="umap" class="section level1" number="2">
+<h1><span class="header-section-number">Chapter 2</span> UMAP</h1>
+<p>UMAP is an algorithm for non-linear dimension reduction. UMAP learns the
+manifold structure of the input data, and finds a <strong>low dimensional embedding</strong>
+that preserves the topological structure of that manifold.</p>
+<p>Here we will simulate data and generate 2D UMAP</p>
+<div id="data-simulation" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> Data simulation</h2>
+<ul>
+<li><p><span class="math inline">\(N\)</span>=100 cells</p></li>
+<li><p><span class="math inline">\(F\)</span>=2 features (F1 and F2)</p></li>
+<li><p>Gene expression matrix <span class="math inline">\(Y^{N \times F}\)</span></p>
+<ul>
+<li><span class="math inline">\(Y^{[1:50, F1]} \sim N(0, 1)\)</span></li>
+<li><span class="math inline">\(Y^{[51:100, F1]} \sim N(5, 2)\)</span></li>
+<li><span class="math inline">\(Y^{[1:100, F2]} \sim N(0, 1)\)</span></li>
+</ul></li>
+</ul>
+<div id="f1-and-f2-distribution" class="section level3" number="2.1.1">
+<h3><span class="header-section-number">2.1.1</span> F1 and F2 distribution</h3>
+<p><img src="_main_files/figure-html/fig_data-1.png" width="768" /></p>
+<p><img src="_main_files/figure-html/fig1-1.png" width="864" /></p>
+</div>
+</div>
+<div id="umap-parameters" class="section level2" number="2.2">
+<h2><span class="header-section-number">2.2</span> UMAP parameters</h2>
+<p>UMAP has a lot of parameters. See full list below.</p>
+<pre><code>FALSE          n_neighbors         n_components               metric 
+FALSE                 &quot;15&quot;                  &quot;2&quot;          &quot;euclidean&quot; 
+FALSE             n_epochs                input                 init 
+FALSE                &quot;200&quot;               &quot;data&quot;           &quot;spectral&quot; 
+FALSE             min_dist     set_op_mix_ratio   local_connectivity 
+FALSE                &quot;0.1&quot;                  &quot;1&quot;                  &quot;1&quot; 
+FALSE            bandwidth                alpha                gamma 
+FALSE                  &quot;1&quot;                  &quot;1&quot;                  &quot;1&quot; 
+FALSE negative_sample_rate                    a                    b 
+FALSE                  &quot;5&quot;                   NA                   NA 
+FALSE               spread         random_state      transform_state 
+FALSE                  &quot;1&quot;                   NA                   NA 
+FALSE                  knn          knn_repeats              verbose 
+FALSE                   NA                  &quot;1&quot;              &quot;FALSE&quot; 
+FALSE      umap_learn_args 
+FALSE                   NA</code></pre>
+<div id="n_neighbors-default-n_neighbors-15" class="section level3" number="2.2.1">
+<h3><span class="header-section-number">2.2.1</span> <em>n_neighbors</em> (default n_neighbors: 15)</h3>
+<p><em>n_neighbors</em> controls the resolution at which UMAP learns the manifold
+structure of the data.</p>
+<p>If <em>n_neighbors</em> is set to a too low value, UMAP will zoom into local
+neighborhood when attempting to learn the manifold structure of the data.
+The opposite will happen if <em>n_neighbors</em> is set to a too high value.</p>
+<p>Lets set <em>n_neighbors</em>=3 and look at the resulting UMAP. As expected, we see
+that UMAP focuses on learning from local structure and misses the global
+structure. As a result we get stringy UMAP layout.</p>
+<p><img src="_main_files/figure-html/orig_umap-1.png" width="768" /></p>
+<p>The opposite should happen for e.g. <em>n_neighbors</em>=100, the overal (global)
+structure should be captured better but at the loss of some of the finer local structure compared to the initial example where we set <em>n_neighbors</em>=15. As
+there are only 100 cells in our data, <em>n_neighbors</em>=15 was already high enough
+and we do not see that much of difference in the newly built UMAP.</p>
+<p><img src="_main_files/figure-html/n_neighbors-1.png" width="768" /></p>
+</div>
+<div id="min_dist-default-min_dist-0.1" class="section level3" number="2.2.2">
+<h3><span class="header-section-number">2.2.2</span> <em>min_dist</em> (default min_dist: 0.1)</h3>
+<p><em>min_dist</em> determines the compactness/clumpiness of the data points as it
+provides the minimum possible distance that may exist between any two points.</p>
+<p>Below two panels show UMAPs with <em>min_dist</em>=<span class="math inline">\(10^{-5}\)</span> (left panel) and
+<em>min_dist</em>=0.99 (right panel)</p>
+<p><img src="_main_files/figure-html/min_dist-1.png" width="768" /></p>
+</div>
+<div id="n_components-default-n_components-2" class="section level3" number="2.2.3">
+<h3><span class="header-section-number">2.2.3</span> <em>n_components</em> (default n_components: 2)</h3>
+<p>As in other dimension reduction algorithms, UMAP can perform dimension
+reduction to a specific number of dimensions. This is regulated by the
+parameter <em>n_components</em>.</p>
+<p><img src="_main_files/figure-html/n_components-1.png" width="384" /></p>
+</div>
+<div id="metric-default-metriceuclidean" class="section level3" number="2.2.4">
+<h3><span class="header-section-number">2.2.4</span> <em>metric</em> (default metric=‘Euclidean’)</h3>
+<p>This parameters determines how distances are computed between the cells. Many
+different metrics are available</p>
+
+</div>
+</div>
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="index.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="cross.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/clipboard.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-clipboard.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"linkedin": false,
+"weibo": false,
+"instapaper": false,
+"vk": false,
+"whatsapp": false,
+"all": ["facebook", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": "https://github.com/USERNAME/REPO/edit/BRANCH/01-umap.Rmd",
+"text": "Edit"
+},
+"history": {
+"link": null,
+"text": null
+},
+"view": {
+"link": null,
+"text": null
+},
+"download": ["_main.pdf", "_main.epub"],
+"search": {
+"engine": "fuse",
+"options": null
+},
+"toc": {
+"collapse": "subsection"
+}
+});
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    var src = "true";
+    if (src === "" || src === "true") src = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML";
+    if (location.protocol !== "file:")
+      if (/^https?:/.test(src))
+        src = src.replace(/^https?:/, '');
+    script.src = src;
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+</body>
+
+</html>
